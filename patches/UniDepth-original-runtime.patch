@@ -1,0 +1,11 @@
+--- a/unidepth/models/unidepthv2/unidepthv2.py
++++ b/unidepth/models/unidepthv2/unidepthv2.py
+@@ -336,6 +336,8 @@
+         out["points"] = points
+         out["rays"] = rays / torch.norm(rays, dim=1, keepdim=True).clip(min=1e-5)
+         out["depth_features"] = model_outputs["depth_features"]
++        
++        assert out["depth"].shape[-2:] == (H, W), f"Depth shape {out['depth'].shape[-2:]} does not match input shape {(H, W)}"
+         return out
+ 
+     def encode_decode(self, inputs, image_metas=[]):

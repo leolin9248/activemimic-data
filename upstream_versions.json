@@ -1,0 +1,20 @@
+{
+  "vggt": {
+    "url": "https://github.com/facebookresearch/vggt",
+    "base_commit": "a288dd0f14786c93483e45524328726ab7b1b4ce",
+    "patch": "patches/vggt-original-runtime.patch",
+    "note": "Upstream revision used as the integration patch base."
+  },
+  "UniDepth": {
+    "url": "https://github.com/lpiccinelli-eth/UniDepth",
+    "base_commit": "8d8cfe4c7ee15297099983607febf0d4f32eb3d6",
+    "patch": "patches/UniDepth-original-runtime.patch",
+    "note": "Upstream revision used as the integration patch base."
+  },
+  "sam-3d-body": {
+    "url": "https://github.com/facebookresearch/sam-3d-body",
+    "base_commit": "b5c765a0d89d789985e186d396315e7590887b94",
+    "patch": "patches/sam-3d-body-original-runtime.patch",
+    "note": "Upstream revision used as the integration patch base."
+  }
+}
