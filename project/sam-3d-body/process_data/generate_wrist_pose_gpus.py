@@ -35,10 +35,10 @@ def extract_wrist_poses_batch(outputs: List[dict]) -> Tuple[List[np.ndarray], Li
     """Extract wrist-to-camera transforms from the first detected person.
 
     Args:
-        outputs (list): N per-frame prediction lists; the first person is used, and failed frames may be None.
+        outputs (list): Per-frame prediction lists; wrist poses are extracted from the first detected person.
 
     Returns:
-        tuple[list[np.ndarray], list[np.ndarray], list[bool]]: Left/right (4, 4) transforms and validity flags. Invalid entries use identity placeholders.
+        tuple[list[np.ndarray], list[np.ndarray], list[bool]]: Left/right transforms of shape (4, 4) and per-frame validity flags. Use entries selected by these flags.
     """
     left_wrist_T_list = []
     right_wrist_T_list = []

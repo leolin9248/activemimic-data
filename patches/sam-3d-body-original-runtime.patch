@@ -1,38 +1,10 @@
---- a/sam_3d_body/models/heads/mhr_head.py
-+++ b/sam_3d_body/models/heads/mhr_head.py
-@@ -103,7 +103,7 @@
-         self.nonhand_param_idxs = nn.Parameter(
-             torch.zeros(145).long(), requires_grad=False
-         )
--
-+        
-         # Load MHR itself
-         if MOMENTUM_ENABLED:
-             self.mhr = MHR.from_files(
-@@ -115,7 +115,7 @@
-                 mhr_model_path,
-                 map_location=("cuda" if torch.cuda.is_available() else "cpu"),
-             )
--
-+        # self.mhr.get_joint_names() dir(self.mhr)
-         for param in self.mhr.parameters():
-             param.requires_grad = False
- 
 --- a/sam_3d_body/models/meta_arch/sam3d_body.py
 +++ b/sam_3d_body/models/meta_arch/sam3d_body.py
-@@ -50,7 +50,7 @@
-         self.register_buffer(
-             "image_std", torch.tensor(self.cfg.MODEL.IMAGE_STD).view(-1, 1, 1), False
+@@ -156,15 +156,6 @@
          )
--
-+        
-         # Create backbone feature extractor for human crops
-         self.backbone = create_backbone(self.cfg.MODEL.BACKBONE.TYPE, self.cfg)
- 
-@@ -157,14 +157,14 @@
          self.hand_pe_layer = PositionEmbeddingRandom(self.backbone.embed_dims // 2)
  
-         # Manually convert the torso of the model to fp16.
+-        # Manually convert the torso of the model to fp16.
 -        if self.cfg.TRAIN.USE_FP16:
 -            self.convert_to_fp16()
 -            if self.cfg.TRAIN.get("FP16_TYPE", "float16") == "float16":
@@ -41,24 +13,12 @@
 -                self.backbone_dtype = torch.bfloat16
 -        else:
 -            self.backbone_dtype = torch.float32
-+        # if self.cfg.TRAIN.USE_FP16:
-+        #     self.convert_to_fp16()
-+        #     if self.cfg.TRAIN.get("FP16_TYPE", "float16") == "float16":
-+        #         self.backbone_dtype = torch.float16
-+        #     else:
-+        #         self.backbone_dtype = torch.bfloat16
-+        # else:
-+        #     self.backbone_dtype = torch.float32
  
          self.ray_cond_emb = CameraEncoder(
              self.backbone.embed_dim,
-@@ -1094,8 +1094,11 @@
-             batch["ray_cond_hand"] = ray_cond[self.hand_batch_idx].clone()
+@@ -1095,7 +1086,7 @@
          ray_cond = None
  
-+        # image_embeddings = self.backbone(
-+        #     x.type(self.backbone_dtype), extra_embed=ray_cond
-+        # )  # (B, C, H, W)
          image_embeddings = self.backbone(
 -            x.type(self.backbone_dtype), extra_embed=ray_cond
 +            x, extra_embed=ray_cond
@@ -67,34 +27,31 @@
          if isinstance(image_embeddings, tuple):
 --- a/sam_3d_body/sam_3d_body_estimator.py
 +++ b/sam_3d_body/sam_3d_body_estimator.py
-@@ -111,7 +111,7 @@
+@@ -111,7 +111,6 @@
              if image_format == "rgb":
                  img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
                  image_format = "bgr"
 -            print("Running object detector...")
-+            # print("Running object detector...")
              boxes = self.detector.run_human_detection(
                  img,
                  det_cat_id=det_cat_id,
-@@ -119,7 +119,7 @@
+@@ -119,7 +118,6 @@
                  nms_thr=nms_thr,
                  default_to_full_image=False,
              )
 -            print("Found boxes:", boxes)
-+            # print("Found boxes:", boxes)
              self.is_crop = True
          else:
              boxes = np.array([0, 0, width, height]).reshape(1, 4)
-@@ -167,7 +167,7 @@
+@@ -167,7 +165,6 @@
              cam_int = cam_int.to(batch["img"])
              batch["cam_int"] = cam_int.clone()
          elif self.fov_estimator is not None:
 -            print("Running FOV estimator ...")
-+            # print("Running FOV estimator ...")
              input_image = batch["img_ori"][0].data
              cam_int = self.fov_estimator.get_cam_intrinsics(input_image).to(
                  batch["img"]
-@@ -211,7 +211,6 @@
+@@ -211,7 +208,6 @@
                      "mask": masks[idx] if masks is not None else None,
                      "pred_joint_coords": out["pred_joint_coords"][idx],
                      "pred_global_rots": out["joint_global_rots"][idx],
@@ -102,16 +59,6 @@
                  }
              )
  
---- a/sam_3d_body/utils/checkpoint.py
-+++ b/sam_3d_body/utils/checkpoint.py
-@@ -109,6 +109,7 @@
-             f'missing keys in source state_dict: {", ".join(missing_keys)}\n'
-         )
- 
-+
-     if len(err_msg) > 0:
-         err_msg.insert(0, "The model and loaded state dict do not match exactly\n")
-         err_msg = "\n".join(err_msg)
 --- a/sam_3d_body/visualization/renderer.py
 +++ b/sam_3d_body/visualization/renderer.py
 @@ -271,13 +271,12 @@
@@ -187,7 +134,7 @@
  
      def run_human_detection(self, img, **kwargs):
          return self.detector_func(self.detector, img, **kwargs)
-@@ -82,11 +42,12 @@
+@@ -82,11 +42,7 @@
          )
  
      detectron2_cfg = LazyConfig.load(str(cfg_path))
@@ -196,11 +143,6 @@
 -        if path == ""
 -        else os.path.join(path, "model_final_f05665.pkl")
 -    )
-+    # detectron2_cfg.train.init_checkpoint = (
-+    #     "https://dl.fbaipublicfiles.com/detectron2/ViTDet/COCO/cascade_mask_rcnn_vitdet_h/f328730692/model_final_f05665.pkl"
-+    #     if path == ""
-+    #     else os.path.join(path, "model_final_f05665.pkl")
-+    # )
 +    detectron2_cfg.train.init_checkpoint = "model/ViTDet/model_final_f05665.pkl"
      for i in range(3):
          detectron2_cfg.model.roi_heads.box_predictors[i].test_score_thresh = 0.25
@@ -237,7 +179,7 @@
          else:
              raise NotImplementedError
      
-@@ -25,8 +21,10 @@
+@@ -25,8 +21,8 @@
          
  
  def load_sam2(device, path):
@@ -245,12 +187,10 @@
 -    model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
 +    checkpoint = "model/sam2.1-hiera-large/sam2.1_hiera_large.pt"
 +    model_cfg = "model/sam2.1-hiera-large/sam2.1_hiera_l.yaml"
-+    # checkpoint = f"{path}/checkpoints/sam2.1_hiera_large.pt"
-+    # model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
  
      import sys
      sys.path.append(path)
-@@ -36,15 +34,6 @@
+@@ -36,15 +32,6 @@
      predictor = SAM2ImagePredictor(build_sam2(model_cfg, checkpoint, device=device))
      predictor.model.eval()
  
@@ -266,12 +206,9 @@
      return predictor
  
  
-@@ -73,23 +62,6 @@
-             # cv2.imwrite(os.path.join(save_dir, f"{os.path.basename(image_path)[:-4]}_mask_{i}.jpg"), (mask_1 * 255).astype(np.uint8))
-         all_masks = np.stack(all_masks)
+@@ -75,21 +62,3 @@
          all_scores = np.stack(all_scores)
--
-+    
+ 
      return all_masks, all_scores
 -
 -
@@ -291,6 +228,4 @@
 -    scores = scores[confident_idx].cpu().numpy()
 -
 -    return masks, scores
-\ No newline at end of file
-+        
 \ No newline at end of file
